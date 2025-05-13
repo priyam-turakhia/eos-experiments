@@ -1,0 +1,6 @@
+*
+!.py
+!.ipynb
+env/
+.DS_Store
+*.gz
