@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
-from mnist_fcnn_utilities import reduced_run_experiment
+from runners import reduced_runner_init_fcnn
 
 subset_size = 5000
 seed_data = 21
@@ -35,7 +35,7 @@ for lr in learning_rates:
         
         print(f"Sample {i + 1}/{num_samples} (LR = {lr})")
         
-        result = reduced_run_experiment(
+        result = reduced_runner_init_fcnn(
             subset_size = subset_size,
             seed_data = seed_data,
             seed_params = seed_params,
