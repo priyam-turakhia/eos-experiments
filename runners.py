@@ -8,8 +8,9 @@ from typing import List
 from visualizations import generate_visuals_sample
 from models import FCNN
 from utilities import compute_hvp, lanczos
+from pathlib import Path
 
-def runner_fcnn(
+def runner_fcnn_mnist(
     subset_size: int,
     seed_data: int,
     seed_params: int,
@@ -95,7 +96,7 @@ def runner_fcnn(
 
     generate_visuals_sample(iterations, losses, accs, traj_lengths, eigs, cumulative_changes, learning_rate, hessian_k)
 
-def reduced_runner_init_fcnn(
+def reduced_runner_init_fcnn_mnist(
     subset_size: int,
     seed_data: int,
     seed_params: int,
@@ -107,7 +108,8 @@ def reduced_runner_init_fcnn(
     initial_eig_threshold: int,
     initial_hessian_freq: int,
     final_hessian_freq: int,
-    hessian_k: int
+    hessian_k: int,
+    save_individual: bool = True
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     
@@ -127,6 +129,19 @@ def reduced_runner_init_fcnn(
     criterion_sum = {'cross_entropy': nn.CrossEntropyLoss(reduction = 'sum'), 'mse': nn.MSELoss(reduction = 'sum')}[loss_fn]
     
     losses, accs, eigs = [], [], []
+    
+    if save_individual:
+        
+        num_layers = len(hidden_sizes) * 2 + 1
+        individual_dir = Path("results") / "initializations" / "fcnn" / "mnist" / f"{activation}_{num_layers}_{loss_fn}_{iterations}_{seed_data}_{subset_size}" / str(learning_rate) / str(seed_params)
+        individual_dir.mkdir(parents=True, exist_ok=True)
+        
+        log_file = individual_dir / "training_log.csv"
+        with open(log_file, 'w') as f:
+            header = "Iteration, Loss, Accuracy"
+            for i in range(hessian_k):
+                header += f",Eigenvalue_{i+1}"
+            f.write(header + "\n")
 
     for epoch in range(1, iterations + 1):
 
@@ -168,7 +183,20 @@ def reduced_runner_init_fcnn(
 
             eigs.append([None] * hessian_k)
 
+        if save_individual:
+            with open(log_file, 'a') as f:
+                row = f"{epoch},{loss.item():.6f},{acc:.6f}"
+                for i in range(hessian_k):
+                    eig_val = eigs[-1][i] if eigs[-1][i] is not None else ""
+                    row += f",{eig_val}"
+                f.write(row + "\n")
+
     print(f"Final Loss: {losses[-1]:.4f} Final Acc: {accs[-1]:.4f} Eigs: {eigs[-1]}")    
+
+    if save_individual:
+        model_path = individual_dir / "model_state_dict.pt"
+        torch.save(model.state_dict(), model_path)
+        print(f"Saved model and logs to {individual_dir}")
 
     return {
         'losses': losses,
