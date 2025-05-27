@@ -1,7 +1,5 @@
-import torch
 from torch import nn
-import torch.nn.functional as F
-
+from typing import List
 class FCNN(nn.Module):
 
     def __init__(self, activation: str, hidden_sizes: List[int]):
