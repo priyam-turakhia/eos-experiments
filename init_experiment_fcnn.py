@@ -5,16 +5,16 @@ from visualizations import generate_initialization_visualizations
 def run_single_lr_experiment(lr):
 
     subset_size = 5000
-    seed_data = 21
-    hidden_sizes = [32, 32]
+    seed_data = 42
+    hidden_sizes = [16, 16]
     activation = 'relu'
     loss_fn = 'mse'
-    iterations = 5000
-    initial_eig_threshold = iterations - 1000
+    iterations = 7500
+    initial_eig_threshold = iterations - 1500
     initial_hessian_freq = 1000
-    final_hessian_freq = 100
+    final_hessian_freq = 150
     hessian_k = 3
-    num_samples = 5
+    num_samples = 10
 
     print(f"\n===== Running experiments for learning rate {lr} =====\n")
     
