@@ -1,5 +1,10 @@
 from torch import nn
 from typing import List
+
+# need extra parameter to specify a (wider!) sampling distribution. PyTorch's default initializaton samples from a 
+# distribution that becomes smaller with growing parameters.
+
+
 class FCNN(nn.Module):
 
     def __init__(self, activation: str, hidden_sizes: List[int]):

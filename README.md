@@ -13,7 +13,7 @@
    * ReLU
    * Sigmoid
    * tanh
-   * Softma
+   * Softmax
    * Leaky ReLU
 3. **Loss Functions**
    * Mean Squared Error (MSE)
@@ -23,15 +23,15 @@
    * "Principal" parameters, i.e. find out if there are any weights/biases which have a major effect on the trajectory
    * Higher order eigenvalues in Hessian, i.e. see what happens to other eigenvalues
    * Train loss (from paper)
-   * Sharpness, i.e. maximum eigenvalue of Hessian (from paper)
+   * Sharpness, i.e. maximum eigenvalue of Hessian (from paper) – approximation with Lanczos is highly accurate.
 5. **Optimizers**
    * Full-batch gradient descent (GD)
    * Stochastic gradient descent (SGD)
    * Adam
 6. **Parameter Initializations**
    * Uniform initialization
-    * Xavier initialization
-    * Kaiming initialization
-    * Zeros initialization
-    * One’s initialization
-    * Normal initialization
+   * Xavier initialization
+   * Kaiming initialization
+   * Zeros initialization
+   * One’s initialization
+   * Normal initialization
