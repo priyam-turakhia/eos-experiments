@@ -6,6 +6,7 @@ def run_single_lr_experiment(lr):
 
     subset_size = 5000
     seed_data = 42
+    init_width = 5.0
     hidden_sizes = [16, 16]
     activation = 'relu'
     loss_fn = 'mse'
@@ -31,6 +32,7 @@ def run_single_lr_experiment(lr):
             subset_size = subset_size,
             seed_data = seed_data,
             seed_params = seed_params,
+            init_width = init_width,
             hidden_sizes = hidden_sizes,
             activation = activation,
             loss_fn = loss_fn,

@@ -14,6 +14,7 @@ def runner_fcnn_mnist(
     subset_size: int,
     seed_data: int,
     seed_params: int,
+    init_width: float,
     hidden_sizes: List[int],
     activation: str,
     loss_fn: str,
@@ -37,7 +38,7 @@ def runner_fcnn_mnist(
     torch.set_rng_state(initial_state)
     torch.manual_seed(seed_params)
 
-    model = FCNN(activation, hidden_sizes).to(device)
+    model = FCNN(activation, hidden_sizes, init_width = init_width).to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
     criterion = {'cross_entropy': nn.CrossEntropyLoss(), 'mse': nn.MSELoss()}[loss_fn]
     criterion_sum = {'cross_entropy': nn.CrossEntropyLoss(reduction = 'sum'), 'mse': nn.MSELoss(reduction = 'sum')}[loss_fn]
@@ -49,6 +50,11 @@ def runner_fcnn_mnist(
     losses, accs, eigs, traj_lengths = [], [], [], []
 
     for epoch in range(1, iterations + 1):
+
+        output = None
+        target = None
+        loss = None
+        acc = 0.0
 
         for data, target in loader:
 
@@ -65,15 +71,16 @@ def runner_fcnn_mnist(
             loss.backward()
             optimizer.step()
 
-        pred = output.argmax(dim = 1)
-        acc = pred.eq(target).sum().item() / len(target)
-        losses.append(loss.item())
-        accs.append(acc)
+        if output is not None and target is not None and loss is not None:
+            pred = output.argmax(dim = 1)
+            acc = pred.eq(target).sum().item() / len(target)
+            losses.append(loss.item())
+            accs.append(acc)
+        
         current_params = parameters_to_vector(model.parameters()).detach().clone().to(device)
         step = current_params - prev_params
         traj_lengths.append(step.norm().item())
         prev_params = current_params
-
 
         for name, param in model.named_parameters():
             delta = param.detach() - prev_param_dict[name]
@@ -92,7 +99,7 @@ def runner_fcnn_mnist(
         else:
             eigs.append([None] * hessian_k)
 
-        print(f"Iter {epoch}/{iterations} Loss: {loss.item():.4f} Acc: {acc:.4f} Eigs: {eigs[-1]}")
+        print(f"Iter {epoch}/{iterations} Loss: {loss.item() if loss is not None else 'N/A'} Acc: {acc:.4f} Eigs: {eigs[-1]}")
 
     generate_visuals_sample(iterations, losses, accs, traj_lengths, eigs, cumulative_changes, learning_rate, hessian_k)
 
@@ -100,6 +107,7 @@ def reduced_runner_init_fcnn_mnist(
     subset_size: int,
     seed_data: int,
     seed_params: int,
+    init_width: float,
     hidden_sizes: List[int],
     activation: str,
     loss_fn: str,
@@ -123,15 +131,17 @@ def reduced_runner_init_fcnn_mnist(
     torch.set_rng_state(initial_state)
     torch.manual_seed(seed_params)
     
-    model = FCNN(activation, hidden_sizes).to(device)
+    model = FCNN(activation, hidden_sizes, init_width = init_width).to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
     criterion = {'cross_entropy': nn.CrossEntropyLoss(), 'mse': nn.MSELoss()}[loss_fn]
     criterion_sum = {'cross_entropy': nn.CrossEntropyLoss(reduction = 'sum'), 'mse': nn.MSELoss(reduction = 'sum')}[loss_fn]
     
     losses, accs, eigs = [], [], []
     
+    log_file = None
+    individual_dir = None
+    
     if save_individual:
-        
         num_layers = len(hidden_sizes) * 2 + 1
         individual_dir = Path("results") / "initializations" / "fcnn" / "mnist" / f"{activation}_{num_layers}_{loss_fn}_{iterations}_{seed_data}_{subset_size}" / str(learning_rate) / str(seed_params)
         individual_dir.mkdir(parents=True, exist_ok=True)
@@ -144,6 +154,11 @@ def reduced_runner_init_fcnn_mnist(
             f.write(header + "\n")
 
     for epoch in range(1, iterations + 1):
+
+        output = None
+        target = None
+        loss = None
+        acc = 0.0
 
         for data, target in loader:
             data, target = data.to(device), target.to(device)
@@ -159,41 +174,37 @@ def reduced_runner_init_fcnn_mnist(
             loss.backward()
             optimizer.step()
 
-        pred = output.argmax(dim = 1)
-        acc = pred.eq(target).sum().item() / len(target)
-        losses.append(loss.item())
-        accs.append(acc)
+        if output is not None and target is not None and loss is not None:
+            pred = output.argmax(dim = 1)
+            acc = pred.eq(target).sum().item() / len(target)
+            losses.append(loss.item())
+            accs.append(acc)
 
         current_hessian_freq = initial_hessian_freq if epoch <= initial_eig_threshold else final_hessian_freq
         
         if epoch % current_hessian_freq == 0:
-
             hv_loader = DataLoader(subset, batch_size = len(subset), shuffle = False)
-
             evals = lanczos(
                 lambda v: compute_hvp(model, criterion_sum, hv_loader, v),
                 dim = len(parameters_to_vector(model.parameters())),
                 neigs = hessian_k,
                 device = device
             )
-
             eigs.append(evals.cpu().tolist())
-            
         else:
-
             eigs.append([None] * hessian_k)
 
-        if save_individual:
+        if save_individual and log_file is not None:
             with open(log_file, 'a') as f:
-                row = f"{epoch},{loss.item():.6f},{acc:.6f}"
+                row = f"{epoch},{loss.item() if loss is not None else 'N/A':.6f},{acc if output is not None else 'N/A':.6f}"
                 for i in range(hessian_k):
                     eig_val = eigs[-1][i] if eigs[-1][i] is not None else ""
                     row += f",{eig_val}"
                 f.write(row + "\n")
 
-    print(f"Final Loss: {losses[-1]:.4f} Final Acc: {accs[-1]:.4f} Eigs: {eigs[-1]}")    
+    print(f"Final Loss: {losses[-1] if losses else 'N/A'} Final Acc: {accs[-1] if accs else 'N/A'} Eigs: {eigs[-1] if eigs else 'N/A'}")    
 
-    if save_individual:
+    if save_individual and individual_dir is not None:
         model_path = individual_dir / "model_state_dict.pt"
         torch.save(model.state_dict(), model_path)
         print(f"Saved model and logs to {individual_dir}")

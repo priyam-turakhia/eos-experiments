@@ -23,10 +23,10 @@ def compute_hvp(network: nn.Module, loss_fn: nn.Module, loader: DataLoader, vect
         else:
             target_tensor = target
 
-        loss = loss_fn(preds, target_tensor) / len(loader.dataset)
-        grads = torch.autograd.grad(loss, network.parameters(), create_graph = True)
+        loss = loss_fn(preds, target_tensor) / len(loader.dataset) # type: ignore
+        grads = torch.autograd.grad(loss, inputs=list(network.parameters()), create_graph = True)
         dot = parameters_to_vector(grads).mul(vector).sum()
-        grads2 = torch.autograd.grad(dot, network.parameters(), retain_graph = True)
+        grads2 = torch.autograd.grad(dot, inputs=list(network.parameters()), retain_graph = True)
         hvp += parameters_to_vector(grads2)
         
     return hvp
@@ -38,7 +38,8 @@ def lanczos(matrix_vector, dim: int, neigs: int, device: torch.device):
         hv = matrix_vector(v)
         return hv.to('cpu').numpy()
     
-    op = LinearOperator((dim, dim), matvec = mv)
+    op = LinearOperator(dtype = np.float32, shape = (dim, dim))
+    op.matvec = mv
     evals, _ = eigsh(op, k = neigs)
     sorted_evals = np.sort(evals)[::-1].copy()
     return torch.from_numpy(sorted_evals).float()
