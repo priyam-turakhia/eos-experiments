@@ -38,8 +38,7 @@ def lanczos(matrix_vector, dim: int, neigs: int, device: torch.device):
         hv = matrix_vector(v)
         return hv.to('cpu').numpy()
     
-    op = LinearOperator(dtype = np.float32, shape = (dim, dim))
-    op.matvec = mv
+    op = LinearOperator(dtype = np.float32, shape = (dim, dim), matvec = mv)
     evals, _ = eigsh(op, k = neigs)
     sorted_evals = np.sort(evals)[::-1].copy()
     return torch.from_numpy(sorted_evals).float()
