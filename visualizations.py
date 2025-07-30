@@ -8,6 +8,7 @@ def generate_visuals_sample(
     losses: List[float],
     accs: List[float],
     traj_lengths: List[float],
+    grad_norms: List[float],
     eigs: List[List[float]],
     cumulative_changes: Dict[str, float],
     learning_rate: float,
@@ -15,32 +16,31 @@ def generate_visuals_sample(
 ):
     iters = list(range(1, iterations + 1))
     
-    min_loss, max_loss = min(losses), max(losses)
-    padding = 0.1 * (max_loss - min_loss)
-    plt.figure()
-    plt.plot(iters, losses)
-    plt.xlabel('Iteration')
-    plt.ylabel('Loss')
-    plt.ylim(min_loss - padding, max_loss + padding)
-    plt.title('Training Loss')
+    fig, ax1 = plt.subplots()
+    ax1.plot(iters, losses, 'b-')
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Loss', color='b')
+    ax1.tick_params(axis='y', labelcolor='b')
+    ax2 = ax1.twinx()
+    ax2.plot(iters, accs, 'r-')
+    ax2.set_ylabel('Accuracy', color='r')
+    ax2.set_ylim(0, 1)
+    ax2.tick_params(axis='y', labelcolor='r')
+    plt.title('Training Loss and Accuracy')
     plt.grid(True)
     plt.show()
 
-    plt.figure()
-    plt.plot(iters, accs)
-    plt.xlabel('Iteration')
-    plt.ylabel('Accuracy')
-    plt.ylim(0, 1)
-    plt.title('Training Accuracy')
-    plt.grid(True)
-    plt.show()
-
-    cum_dist = np.cumsum(traj_lengths) 
-    plt.figure()
-    plt.plot(iters, cum_dist)
-    plt.xlabel('Iteration')
-    plt.ylabel('Cumulative Distance')
-    plt.title('Cumulative Optimization Trajectory Length')
+    cum_dist = np.cumsum(traj_lengths)
+    fig, ax1 = plt.subplots()
+    ax1.plot(iters, cum_dist, 'b-')
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Cumulative Distance', color='b')
+    ax1.tick_params(axis='y', labelcolor='b')
+    ax2 = ax1.twinx()
+    ax2.plot(iters, grad_norms, 'r-')
+    ax2.set_ylabel('Gradient Norm', color='r')
+    ax2.tick_params(axis='y', labelcolor='r')
+    plt.title('Optimization Trajectory and Gradient Norm')
     plt.grid(True)
     plt.show()
 
